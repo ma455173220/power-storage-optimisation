@@ -1,0 +1,10 @@
+[project]
+name = "bess-arbitrage"
+version = "0.1.0"
+description = "Battery arbitrage in the NEM: LP vs MILP with Pyomo + HiGHS"
+requires-python = ">=3.12"
+dependencies = ["pyomo", "highspy", "pandas", "numpy", "matplotlib", "pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
