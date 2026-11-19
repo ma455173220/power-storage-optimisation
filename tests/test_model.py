@@ -86,3 +86,14 @@ def test_split_days_uses_interval_start():
     assert days[0][1]["interval_end"].iloc[-1] == pd.Timestamp("2026-05-02 00:00")
     with pytest.raises(ValueError):
         backtest.split_days(df.iloc[:-1], 1 / 12)
+
+
+@pytest.mark.parametrize("binary", [False, True])
+def test_daily_cycle_cap_is_respected_and_costs_profit(random_day, binary):
+    free = model.solve(random_day, 1 / 12, Battery(), binary=binary)
+    capped_batt = Battery(max_cycles_per_day=1.0)
+    capped = model.solve(random_day, 1 / 12, capped_batt, binary=binary)
+    usable = capped_batt.e_max - capped_batt.e_min
+    assert free.discharge.sum() / 12 > usable  # the cap binds on this day
+    assert capped.discharge.sum() / 12 <= usable + 1e-6
+    assert capped.profit <= free.profit + 1e-6

@@ -48,6 +48,11 @@ def pct(x: float, nd: int = 1) -> str:
     return f"{x:.{nd}f}%"
 
 
+def neg(text: str) -> str:
+    """Use a proper minus sign in running text."""
+    return text.replace("-", "\u2212")
+
+
 def md_table(df: pd.DataFrame) -> str:
     cols = list(df.columns)
     lines = ["| " + " | ".join(cols) + " |", "|" + "|".join("---" for _ in cols) + "|"]
@@ -126,7 +131,8 @@ def fig_monthly(monthly, full):
 
 SENS_ORDER = [("base", "Base: 2 h, 5-min, rte 85%, κ 10"), ("base_30min", "30-min prices"),
               ("dur_4h", "4 h duration"), ("rte_0.80", "rte 80%"), ("rte_0.90", "rte 90%"),
-              ("kappa_0", "κ = 0 $/MWh"), ("kappa_5", "κ = 5 $/MWh"), ("kappa_20", "κ = 20 $/MWh")]
+              ("kappa_0", "κ = 0 $/MWh"), ("kappa_5", "κ = 5 $/MWh"), ("kappa_20", "κ = 20 $/MWh"),
+              ("cycles_1", "≤ 1 cycle per day")]
 
 
 def fig_sensitivity(s):
@@ -153,7 +159,7 @@ def values(s, full, monthly, show) -> dict:
     bench = pd.read_csv(R / "benchmark.csv")
     dsum = pd.read_csv(R / "data_summary.csv", dtype={"month": str})
     v["n_days"] = str(int(get(s, "SA1", "base", "milp", "days")))
-    v["burn_threshold"] = f"{BASE.burn_threshold:.2f}"
+    v["burn_threshold"] = neg(f"{BASE.burn_threshold:.2f}")
 
     # headline table
     rows = []
@@ -180,11 +186,11 @@ def values(s, full, monthly, show) -> dict:
         v[f"{r}_lp_minus_milp_pct"] = pct(100 * (lp - milp) / milp, 2)
         v[f"{r}_lp_sim"] = f"{int(get(s, region, 'base', 'lp', 'n_simultaneous')):,}"
         mx = get(s, region, "base", "lp", "max_price_simultaneous")
-        v[f"{r}_lp_sim_maxprice"] = "none" if pd.isna(mx) else f"{mx:.2f} $/MWh"
+        v[f"{r}_lp_sim_maxprice"] = "none" if pd.isna(mx) else neg(f"{mx:.2f}") + " $/MWh"
         v[f"{r}_daily_capture"] = pct(100 * milp / fh)
         v[f"{r}_30min_loss"] = pct(100 * (1 - get(s, region, "base_30min", "milp") / milp))
         v[f"{r}_4h_gain"] = pct(100 * (get(s, region, "dur_4h", "milp") / milp - 1))
-        v[f"{r}_min_price"] = f"{data.load(region)['rrp'].min():,.2f}"
+        v[f"{r}_min_price"] = neg(f"{data.load(region)['rrp'].min():,.2f}")
         v[f"{r}_n_below_thr"] = f"{int((data.load(region)['rrp'] < BASE.burn_threshold).sum()):,}"
 
     # LP vs MILP by kappa
@@ -229,21 +235,68 @@ def values(s, full, monthly, show) -> dict:
     v["table_full"] = md_table(fh[["region", "Month", "Daily rolling", "Full month", "Daily / full"]]
                                .rename(columns={"region": "Region"}))
 
-    # performance
-    b = bench.copy()
-    b["Time (s)"] = b["seconds"].map(lambda x: f"{x:.1f}")
-    b["Profit"] = b["profit"].map(lambda x: f"${x:,.2f}")
-    v["bench_case"] = b["case"].iloc[0]
-    v["table_bench"] = md_table(b[["algorithm", "Time (s)", "Profit"]].rename(columns={"algorithm": "HiGHS algorithm"}))
-    v["bench_speedup"] = f"{b['seconds'].iloc[0] / b['seconds'].iloc[1]:.0f}×"
+    # performance: LP algorithms on every month-long LP
+    piv = bench.assign(Month=bench["month"].astype(str).map(lambda m: pd.Timestamp(m + "01").strftime("%b %Y"))) \
+        .pivot_table(index=["region", "Month"], columns="algorithm", values="seconds", sort=False).reset_index()
+    algs = ["HiGHS default (no options)", "primal simplex", "interior point (IPM)"]
+    for a in algs:
+        piv[a] = piv[a].map(lambda x: f"{x:.1f}")
+    v["table_bench"] = md_table(piv[["region", "Month"] + algs].rename(columns={"region": "Region"}))
+    d = bench[bench.algorithm == algs[0]]
+    slow = d.sort_values("seconds", ascending=False)
+    v["bench_slow_cases"] = " and ".join(
+        f"{r.region} {pd.Timestamp(str(r.month) + '01').strftime('%B %Y')} ({r.seconds:.0f} s)" for r in slow.head(2).itertuples())
+    v["bench_default_rest_max"] = f"{slow['seconds'].iloc[2:].max():.1f}"
+    other = bench[bench.algorithm != algs[0]]["seconds"]
+    v["bench_other_range"] = f"{other.min():.1f}–{other.max():.1f}"
+    capmonths = set(dsum.loc[dsum["rrp_max"] >= dsum["month"].map(
+        lambda m: data.PRICE_LIMITS["2025-26" if m < "202607" else "2026-27"][1]) - 1e-6, ["region", "month"]]
+        .astype(str).agg(" ".join, axis=1))
+    v["bench_slow_are_cap_months"] = "yes" if set(slow.head(2)[["region", "month"]].astype(str).agg(" ".join, axis=1)) == capmonths else "no"
+    # solve times, LP vs MILP
+    v["t_lp_daily"] = f"{get(s, 'SA1', 'base', 'lp', 'solve_seconds'):.0f}"
+    v["t_milp_daily"] = f"{get(s, 'SA1', 'base', 'milp', 'solve_seconds'):.0f}"
+    v["t_milp_daily_k0"] = f"{get(s, 'SA1', 'kappa_0', 'milp', 'solve_seconds'):.0f}"
+    fl, fm = full[full.method == "lp"]["solve_seconds"], full[full.method == "milp"]["solve_seconds"]
+    v["t_full_lp"] = f"{fl.min():.1f}–{fl.max():.1f}"
+    v["t_full_milp"] = f"{fm.min():.0f}–{fm.max():.0f}"
     v["wall_seconds"] = f"{meta['wall_seconds']:.0f}"
     v["sum_solver_seconds"] = f"{meta['sum_solver_seconds']:.0f}"
     v["workers"] = str(meta["workers"])
     v["n_jobs"] = str(meta["n_daily_jobs"] + meta["n_month_jobs"])
     v["mip_gap"] = f"{meta['mip_gap']:g}"
 
+    # profit concentration on a few days (MILP, base)
+    for region in data.REGIONS:
+        r = region.lower()
+        dd = pd.read_csv(R / f"daily_{region}_milp.csv", parse_dates=["date"]).sort_values("profit", ascending=False)
+        tot = dd["profit"].sum()
+        v[f"{r}_top1_share"] = pct(100 * dd["profit"].iloc[0] / tot, 0)
+        v[f"{r}_top1_date"] = dd["date"].iloc[0].strftime("%-d %B %Y")
+        v[f"{r}_top5_share"] = pct(100 * dd["profit"].iloc[:5].sum() / tot, 0)
+        mon = monthly[(monthly.region == region) & (monthly.scenario == "base") & (monthly.method == "milp")]
+        best = mon.loc[mon["profit"].idxmax()]
+        v[f"{r}_best_month"] = pd.Timestamp(str(best["month"]) + "01").strftime("%B")
+        v[f"{r}_best_month_share"] = pct(100 * best["profit"] / mon["profit"].sum(), 0)
+        # heuristic: SoC carried over, so it may end the period with less energy than it started with
+        e_end = get(s, region, "base", "heuristic", "soc_end_final")
+        mean_p = data.load(region)["rrp"].mean()
+        adj = (BASE.e_init - e_end) / BASE.eta_c * mean_p
+        v[f"{r}_heur_end_soc"] = f"{e_end:.0f}"
+        v[f"{r}_heur_adj"] = f"${abs(adj):,.0f}"
+        v[f"{r}_heur_adj_pct"] = pct(100 * abs(adj) / get(s, region, "base", "heuristic"), 2)
+        v[f"{r}_heur_adj_dir"] = "lower" if adj > 0 else "raise"
+        # like-for-like: MILP limited to one cycle a day vs heuristic
+        v[f"{r}_cap1_vs_heur"] = f"{get(s, region, 'cycles_1', 'milp') / get(s, region, 'base', 'heuristic'):.2f}×"
+        v[f"{r}_cap1_loss"] = pct(100 * (1 - get(s, region, "cycles_1", "milp") / get(s, region, "base", "milp")))
+    v["mean_price_note"] = "the period's mean price"
+    tb = pd.read_csv(R / "lp_threshold_breakdown.csv")
+    tb.columns = ["Region", "Intervals below threshold", "Charge and discharge at once",
+                  "Full-power charging only", "Full and idle", "Other"]
+    v["table_threshold"] = md_table(tb)
+
     v["show_day"], v["show_n_sim"] = show[0], str(show[1])
-    v["show_max_price"] = f"{show[2]:.2f}"
+    v["show_max_price"] = neg(f"{show[2]:.2f}")
     return v
 
 

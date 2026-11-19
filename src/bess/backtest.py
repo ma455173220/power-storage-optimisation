@@ -98,4 +98,5 @@ def summarise(daily: pd.DataFrame, batt: Battery) -> dict:
         "n_simultaneous_negative_price": int(daily["n_simultaneous_negative_price"].sum()),
         "max_price_simultaneous": daily["max_price_simultaneous"].max(),
         "solve_seconds": daily["solve_seconds"].sum(),
+        "soc_end_final": float(daily["soc_end"].iloc[-1]),  # MWh at the end of the last day
     }

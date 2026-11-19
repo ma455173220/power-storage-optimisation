@@ -1,4 +1,5 @@
-"""Rule-of-thumb benchmark: charge in the cheapest intervals, discharge in the dearest.
+"""Rule-of-thumb benchmark (at most about one cycle a day): charge in the cheapest
+intervals, discharge in the dearest.
 
 For each day:
   1. n_c = intervals at full power needed to fill the battery from empty,

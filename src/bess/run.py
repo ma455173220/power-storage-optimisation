@@ -8,6 +8,7 @@ Experiments (each region: SA1 and NSW1, May-Oct 2026):
   dur_4h      100 MW / 4 h, 5-minute prices        LP, MILP, heuristic
   rte_0.80, rte_0.90      round-trip efficiency     MILP
   kappa_0, kappa_5, kappa_20  degradation cost      LP, MILP
+  cycles_1    at most one equivalent full cycle a day   MILP
   full_horizon  base battery, one solve per month   LP, MILP   (upper bound for daily rolling)
 Jobs run in parallel processes; each job is independent.
 """
@@ -35,6 +36,7 @@ SCENARIOS = {
     "kappa_0": (replace(BASE, deg_cost=0.0), "5min", ("lp", "milp")),
     "kappa_5": (replace(BASE, deg_cost=5.0), "5min", ("lp", "milp")),
     "kappa_20": (replace(BASE, deg_cost=20.0), "5min", ("lp", "milp")),
+    "cycles_1": (replace(BASE, max_cycles_per_day=1.0), "5min", ("milp",)),
 }
 DT = {"5min": 1 / 12, "30min": 0.5}
 
@@ -70,6 +72,19 @@ def showcase(region: str, daily_lp: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def threshold_breakdown(region: str) -> dict:
+    """What the base LP does in intervals priced below the burn threshold."""
+    _, sched = backtest.rolling(prices(region, "5min"), DT["5min"], BASE, "lp", keep_schedule=True)
+    below = sched["rrp"] < BASE.burn_threshold
+    tol, P = model.TOL, BASE.power_mw
+    c, d = sched["charge_mw"], sched["discharge_mw"]
+    return {"region": region, "intervals_below_threshold": int(below.sum()),
+            "simultaneous": int((below & (c > tol) & (d > tol)).sum()),
+            "full_power_charging_only": int((below & (c > P - tol) & (d <= tol)).sum()),
+            "battery_full_idle": int((below & (c <= tol) & (d <= tol) & (sched["soc_mwh"] > BASE.e_max - 1e-6)).sum()),
+            "other": None}
+
+
 def main() -> None:
     t0 = time.perf_counter()
     RESULTS.mkdir(exist_ok=True)
@@ -101,11 +116,16 @@ def main() -> None:
     summary.to_csv(RESULTS / "summary.csv", index=False, float_format="%.4f")
     monthly.to_csv(RESULTS / "monthly.csv", index=False, float_format="%.2f")
     full.to_csv(RESULTS / "full_horizon.csv", index=False, float_format="%.2f")
+    tb = pd.DataFrame([threshold_breakdown(r) for r in data.REGIONS])
+    tb["other"] = tb["intervals_below_threshold"] - tb[["simultaneous", "full_power_charging_only",
+                                                         "battery_full_idle"]].sum(axis=1)
+    tb.to_csv(RESULTS / "lp_threshold_breakdown.csv", index=False)
     pd.concat([showcase(r, dailies[(r, "base", "lp")]) for r in data.REGIONS]).to_csv(
         RESULTS / "showcase_days.csv", index=False, float_format="%.4f")
     for (region, scenario, method), daily in dailies.items():
-        if scenario == "base":
-            daily.to_csv(RESULTS / f"daily_{region}_{method}.csv", index=False, float_format="%.4f")
+        if scenario in ("base", "cycles_1"):
+            tag = "" if scenario == "base" else f"_{scenario}"
+            daily.to_csv(RESULTS / f"daily_{region}_{method}{tag}.csv", index=False, float_format="%.4f")
 
     meta = {"wall_seconds": round(time.perf_counter() - t0, 1), "workers": workers,
             "n_daily_jobs": len(jobs), "n_month_jobs": len(mjobs),

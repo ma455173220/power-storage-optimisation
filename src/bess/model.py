@@ -24,10 +24,11 @@ import numpy as np
 import pyomo.environ as pyo
 
 SOLVER = "appsi_highs"
-# LP algorithm: primal simplex. On the month-long NSW1 Oct-2026 LP, HiGHS's default dual
-# simplex took ~70 s versus ~1 s for primal simplex or IPM (same optimum); see bess.bench.
+# LP algorithm: primal simplex. On the two month-long LPs whose prices reached the market
+# price cap, HiGHS's default was much slower than primal simplex (same optimum); on the other
+# months it was about as fast. `python -m bess.bench` measures all twelve months.
 LP_HIGHS_OPTIONS = {"solver": "simplex", "simplex_strategy": 4}
-MIP_GAP = 1e-6  # relative optimality gap for MILP (HiGHS default 1e-4 changed SA1 Oct-2026 daily totals by < $10)
+MIP_GAP = 1e-6  # relative MILP optimality gap (HiGHS default is 1e-4; tighter is affordable here)
 TOL = 1e-6  # MW; below this a power value counts as zero
 
 
@@ -36,10 +37,13 @@ class Battery:
     power_mw: float = 100.0
     duration_h: float = 2.0
     rte: float = 0.85             # round-trip efficiency (AC-AC); split equally between charge and discharge
-    deg_cost: float = 10.0        # kappa, $ per MWh discharged (ASSUMPTION, see params.md)
+    deg_cost: float = 10.0        # kappa, $ per MWh discharged (ASSUMPTION, see README Parameters)
     soc_min_frac: float = 0.0
     soc_max_frac: float = 1.0
     soc_init_frac: float = 0.5
+    # Optional cap on equivalent full cycles per day: energy delivered to the grid per day
+    # <= max_cycles_per_day * usable energy. None = no cap.
+    max_cycles_per_day: float | None = None
 
     @property
     def energy_mwh(self) -> float:
@@ -119,6 +123,10 @@ def solve(prices, dt_h: float, batt: Battery, binary: bool = False,
         return m.e[t] == prev + batt.eta_c * m.c[t] * dt_h - m.d[t] * dt_h / batt.eta_d
     m.balance = pyo.Constraint(m.T, rule=balance)
     m.terminal = pyo.Constraint(expr=m.e[T - 1] == e_end)
+    if batt.max_cycles_per_day is not None:
+        days = T * dt_h / 24
+        m.cycles = pyo.Constraint(expr=sum(m.d[t] * dt_h for t in m.T)
+                                  <= batt.max_cycles_per_day * (batt.e_max - batt.e_min) * days)
 
     if binary:
         m.u = pyo.Var(m.T, within=pyo.Binary)
