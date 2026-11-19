@@ -152,3 +152,7 @@ Individual steps: `make data`, `make test`, `make run` (the slowest step; see Pe
 | `src/bess/report.py` | figures and this README |
 | `tests/` | pytest: hand-calculated examples, energy balance, bounds, LP vs MILP, data checks |
 | `results/` | generated tables and figures |
+
+## License
+
+Code: MIT (see `LICENSE`). Price data: © AEMO, not redistributed here; downloaded from AEMO and used under its copyright permissions with attribution.
