@@ -84,6 +84,7 @@ class Solution:
     energy_revenue: float   # $  sum p (d - c) dt
     degradation: float      # $  sum kappa d dt
     solve_seconds: float
+    balance_dual: np.ndarray | None = None  # $/MWh: value of one more MWh stored at the end of t
 
     @property
     def profit(self) -> float:
@@ -96,8 +97,11 @@ class Solution:
 
 
 def solve(prices, dt_h: float, batt: Battery, binary: bool = False,
-          e0: float | None = None, e_end: float | None = None) -> Solution:
-    """Solve one window. e0 / e_end default to the battery's initial SoC."""
+          e0: float | None = None, e_end: float | None = None, duals: bool = False) -> Solution:
+    """Solve one window. e0 / e_end default to the battery's initial SoC.
+
+    duals=True (LP only) also returns the shadow price of each energy-balance constraint.
+    """
     p = np.asarray(prices, dtype=float)
     T = len(p)
     e0 = batt.e_init if e0 is None else e0
@@ -126,6 +130,10 @@ def solve(prices, dt_h: float, batt: Battery, binary: bool = False,
         sense=pyo.maximize)
 
     t0 = time.perf_counter()
+    if duals:
+        if binary:
+            raise ValueError("duals are only defined for the LP")
+        m.dual = pyo.Suffix(direction=pyo.Suffix.IMPORT)
     opt = pyo.SolverFactory(SOLVER)
     if binary:
         opt.config.mip_gap = MIP_GAP
@@ -139,7 +147,10 @@ def solve(prices, dt_h: float, batt: Battery, binary: bool = False,
     c = np.array([pyo.value(m.c[t]) for t in m.T])
     d = np.array([pyo.value(m.d[t]) for t in m.T])
     e = np.array([pyo.value(m.e[t]) for t in m.T])
+    # Shadow price of the energy balance: change in the optimal objective per extra MWh in
+    # storage at the end of t (sign checked against the stationarity conditions in tests).
+    lam = np.array([m.dual[m.balance[t]] for t in m.T]) if duals else None
     return Solution(charge=c, discharge=d, soc=e,
                     energy_revenue=float(np.sum(p * (d - c) * dt_h)),
                     degradation=float(np.sum(batt.deg_cost * d * dt_h)),
-                    solve_seconds=secs)
+                    solve_seconds=secs, balance_dual=lam)
