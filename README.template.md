@@ -98,6 +98,8 @@ What the base-case LP does in the intervals priced below the threshold:
 
 @@table_threshold@@
 
+Discharging at a negative price costs money, so the discharge-only intervals buy something else: room in the battery for even more negative prices later in the day, or the return to 50% by midnight.
+
 ![SA1 day with the most LP simultaneous charging and discharging](results/figures/showcase_SA1.png)
 
 On @@show_day@@ the LP charged and discharged at once in @@show_n_sim@@ intervals, all at prices of @@show_max_price@@ $/MWh or lower. The MILP schedule never does both.

@@ -82,7 +82,9 @@ def threshold_breakdown(region: str) -> dict:
             "simultaneous": int((below & (c > tol) & (d > tol)).sum()),
             "full_power_charging_only": int((below & (c > P - tol) & (d <= tol)).sum()),
             "battery_full_idle": int((below & (c <= tol) & (d <= tol) & (sched["soc_mwh"] > BASE.e_max - 1e-6)).sum()),
-            "other": None}
+            "charging_below_full_power": int((below & (c > tol) & (c <= P - tol) & (d <= tol)).sum()),
+            "discharging_only": int((below & (c <= tol) & (d > tol)).sum()),
+            "idle_not_full": int((below & (c <= tol) & (d <= tol) & (sched["soc_mwh"] <= BASE.e_max - 1e-6)).sum())}
 
 
 def main() -> None:
@@ -117,8 +119,9 @@ def main() -> None:
     monthly.to_csv(RESULTS / "monthly.csv", index=False, float_format="%.2f")
     full.to_csv(RESULTS / "full_horizon.csv", index=False, float_format="%.2f")
     tb = pd.DataFrame([threshold_breakdown(r) for r in data.REGIONS])
-    tb["other"] = tb["intervals_below_threshold"] - tb[["simultaneous", "full_power_charging_only",
-                                                         "battery_full_idle"]].sum(axis=1)
+    parts = ["simultaneous", "full_power_charging_only", "charging_below_full_power", "discharging_only",
+             "battery_full_idle", "idle_not_full"]
+    assert (tb[parts].sum(axis=1) == tb["intervals_below_threshold"]).all(), "breakdown does not add up"
     tb.to_csv(RESULTS / "lp_threshold_breakdown.csv", index=False)
     pd.concat([showcase(r, dailies[(r, "base", "lp")]) for r in data.REGIONS]).to_csv(
         RESULTS / "showcase_days.csv", index=False, float_format="%.4f")

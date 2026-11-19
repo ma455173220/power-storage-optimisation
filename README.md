@@ -78,18 +78,18 @@ Every file is validated: continuous 5-minute timestamps for the whole month, no 
 
 | Region | Month | Intervals | Missing | Duplicates | Outside MPF–MPC | Mean ($/MWh) | Min | Max | Negative (%) |
 |---|---|---|---|---|---|---|---|---|---|
-| SA1 | May 2026 | 8928 | 0 | 0 | 0 | 77.49 | -45.73 | 349.09 | 12.8 |
-| SA1 | Jun 2026 | 8640 | 0 | 0 | 0 | 125.73 | -21.68 | 20,300.00 | 19.4 |
-| SA1 | Jul 2026 | 8928 | 0 | 0 | 0 | 95.89 | -204.05 | 16,970.86 | 19.1 |
-| SA1 | Aug 2026 | 8928 | 0 | 0 | 0 | 71.62 | -496.77 | 375.79 | 13.8 |
-| SA1 | Sep 2026 | 8640 | 0 | 0 | 0 | 37.71 | -294.71 | 358.57 | 30.1 |
-| SA1 | Oct 2026 | 8928 | 0 | 0 | 0 | 49.70 | -414.98 | 3,210.98 | 32.9 |
-| NSW1 | May 2026 | 8928 | 0 | 0 | 0 | 82.01 | -8.89 | 341.14 | 1.3 |
-| NSW1 | Jun 2026 | 8640 | 0 | 0 | 0 | 83.30 | -5.01 | 299.99 | 0.3 |
-| NSW1 | Jul 2026 | 8928 | 0 | 0 | 0 | 81.52 | -8.77 | 531.85 | 1.4 |
-| NSW1 | Aug 2026 | 8928 | 0 | 0 | 0 | 75.71 | -18.51 | 311.91 | 2.3 |
-| NSW1 | Sep 2026 | 8640 | 0 | 0 | 0 | 65.32 | -18.51 | 384.09 | 10.4 |
-| NSW1 | Oct 2026 | 8928 | 0 | 0 | 0 | 127.83 | -10.50 | 23,200.00 | 0.6 |
+| SA1 | May 2026 | 8928 | 0 | 0 | 0 | 77.49 | −45.73 | 349.09 | 12.8 |
+| SA1 | Jun 2026 | 8640 | 0 | 0 | 0 | 125.73 | −21.68 | 20,300.00 | 19.4 |
+| SA1 | Jul 2026 | 8928 | 0 | 0 | 0 | 95.89 | −204.05 | 16,970.86 | 19.1 |
+| SA1 | Aug 2026 | 8928 | 0 | 0 | 0 | 71.62 | −496.77 | 375.79 | 13.8 |
+| SA1 | Sep 2026 | 8640 | 0 | 0 | 0 | 37.71 | −294.71 | 358.57 | 30.1 |
+| SA1 | Oct 2026 | 8928 | 0 | 0 | 0 | 49.70 | −414.98 | 3,210.98 | 32.9 |
+| NSW1 | May 2026 | 8928 | 0 | 0 | 0 | 82.01 | −8.89 | 341.14 | 1.3 |
+| NSW1 | Jun 2026 | 8640 | 0 | 0 | 0 | 83.30 | −5.01 | 299.99 | 0.3 |
+| NSW1 | Jul 2026 | 8928 | 0 | 0 | 0 | 81.52 | −8.77 | 531.85 | 1.4 |
+| NSW1 | Aug 2026 | 8928 | 0 | 0 | 0 | 75.71 | −18.51 | 311.91 | 2.3 |
+| NSW1 | Sep 2026 | 8640 | 0 | 0 | 0 | 65.32 | −18.51 | 384.09 | 10.4 |
+| NSW1 | Oct 2026 | 8928 | 0 | 0 | 0 | 127.83 | −10.50 | 23,200.00 | 0.6 |
 
 Source: Australian Energy Market Operator (AEMO), *Aggregated price and demand data*, used under AEMO's copyright permissions, which allow use for any purpose with accurate attribution to AEMO.
 
@@ -115,22 +115,24 @@ Source: Australian Energy Market Operator (AEMO), *Aggregated price and demand d
 | Region | κ ($/MWh) | Burn threshold ($/MWh) | LP simultaneous intervals | Highest price among them | LP − MILP profit |
 |---|---|---|---|---|---|
 | SA1 | 0 | 0.00 | 3,812 | 0.00 | $24,881 (0.27%) |
-| SA1 | 5 | -28.33 | 270 | -29.02 | $7,597 (0.09%) |
-| SA1 | 10 | -56.67 | 143 | -57.90 | $3,788 (0.05%) |
-| SA1 | 20 | -113.33 | 23 | -115.53 | $831 (0.01%) |
+| SA1 | 5 | −28.33 | 270 | −29.02 | $7,597 (0.09%) |
+| SA1 | 10 | −56.67 | 143 | −57.90 | $3,788 (0.05%) |
+| SA1 | 20 | −113.33 | 23 | −115.53 | $831 (0.01%) |
 | NSW1 | 0 | 0.00 | 300 | 0.00 | $1,023 (0.02%) |
-| NSW1 | 5 | -28.33 | 0 | – | $0 (0.00%) |
-| NSW1 | 10 | -56.67 | 0 | – | $0 (0.00%) |
-| NSW1 | 20 | -113.33 | 0 | – | $0 (0.00%) |
+| NSW1 | 5 | −28.33 | 0 | – | $0 (0.00%) |
+| NSW1 | 10 | −56.67 | 0 | – | $0 (0.00%) |
+| NSW1 | 20 | −113.33 | 0 | – | $0 (0.00%) |
 
 The lower the degradation cost, the higher the burn threshold and the more often the LP exploits it. With κ = 0 any non-positive price is enough. The interval counts need not be unique, because the LP can have several optimal schedules with the same profit; the profit gap is the robust measure.
 
 What the base-case LP does in the intervals priced below the threshold:
 
-| Region | Intervals below threshold | Charge and discharge at once | Full-power charging only | Full and idle | Other |
-|---|---|---|---|---|---|
-| SA1 | 1020 | 143 | 795 | 0 | 82 |
-| NSW1 | 0 | 0 | 0 | 0 | 0 |
+| Region | Intervals below threshold | Charge and discharge at once | Charge at full power | Charge below full power | Discharge only | Idle, battery full | Idle, not full |
+|---|---|---|---|---|---|---|---|
+| SA1 | 1020 | 143 | 795 | 0 | 82 | 0 | 0 |
+| NSW1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Discharging at a negative price costs money, so the discharge-only intervals buy something else: room in the battery for even more negative prices later in the day, or the return to 50% by midnight.
 
 ![SA1 day with the most LP simultaneous charging and discharging](results/figures/showcase_SA1.png)
 

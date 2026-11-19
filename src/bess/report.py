@@ -56,7 +56,8 @@ def neg(text: str) -> str:
 def md_table(df: pd.DataFrame) -> str:
     cols = list(df.columns)
     lines = ["| " + " | ".join(cols) + " |", "|" + "|".join("---" for _ in cols) + "|"]
-    lines += ["| " + " | ".join(str(v) for v in row) + " |" for row in df.itertuples(index=False)]
+    cell = lambda v: neg(str(v)) if re.match(r"^-\d", str(v)) else str(v)  # noqa: E731
+    lines += ["| " + " | ".join(cell(v) for v in row) + " |" for row in df.itertuples(index=False)]
     return "\n".join(lines)
 
 
@@ -291,8 +292,11 @@ def values(s, full, monthly, show) -> dict:
         v[f"{r}_cap1_loss"] = pct(100 * (1 - get(s, region, "cycles_1", "milp") / get(s, region, "base", "milp")))
     v["mean_price_note"] = "the period's mean price"
     tb = pd.read_csv(R / "lp_threshold_breakdown.csv")
+    tb = tb[["region", "intervals_below_threshold", "simultaneous", "full_power_charging_only",
+             "charging_below_full_power", "discharging_only", "battery_full_idle", "idle_not_full"]]
     tb.columns = ["Region", "Intervals below threshold", "Charge and discharge at once",
-                  "Full-power charging only", "Full and idle", "Other"]
+                  "Charge at full power", "Charge below full power", "Discharge only",
+                  "Idle, battery full", "Idle, not full"]
     v["table_threshold"] = md_table(tb)
 
     v["show_day"], v["show_n_sim"] = show[0], str(show[1])

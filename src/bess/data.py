@@ -27,10 +27,9 @@ INTERVAL = pd.Timedelta(minutes=5)
 # NEM market price limits in $/MWh by financial year (1 July to 30 June):
 # (market floor price MPF, market price cap MPC).
 # - MPF -1,000 $/MWh: National Electricity Rules clause 3.9.6 (unchanged in both years).
-# - MPC 2025-26 = 20,300 $/MWh from 1 July 2025 (WattClarity, 1 July 2025).
-# - MPC 2026-27 = 23,200 $/MWh from 1 July 2026 (AEMC media release "AEMC updates
-#   market price cap 2026-27", as quoted in search results; the AEMC page itself
-#   refused automated access, so the original text was not read).
+# - MPC 20,300 $/MWh (1 July 2025 - 30 June 2026) and 23,200 $/MWh (1 July 2026 -
+#   30 June 2027): AEMC media release "AEMC updates market price cap for 2026-27"
+#   (read 2026-11-19).
 # These limits are only used as a sanity bound when validating the data.
 PRICE_LIMITS = {
     "2025-26": (-1000.0, 20300.0),
