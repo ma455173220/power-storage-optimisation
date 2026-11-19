@@ -1,0 +1,20 @@
+{
+  "wall_seconds": 355.9,
+  "workers": 8,
+  "n_daily_jobs": 34,
+  "n_month_jobs": 24,
+  "sum_solver_seconds": 1590.9,
+  "mip_gap": 1e-06,
+  "months": [
+    "202605",
+    "202606",
+    "202607",
+    "202608",
+    "202609",
+    "202610"
+  ],
+  "regions": [
+    "SA1",
+    "NSW1"
+  ]
+}
