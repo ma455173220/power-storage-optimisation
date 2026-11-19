@@ -24,6 +24,9 @@ import numpy as np
 import pyomo.environ as pyo
 
 SOLVER = "appsi_highs"
+# LP algorithm: primal simplex. On the month-long NSW1 Oct-2026 LP, HiGHS's default dual
+# simplex took ~70 s versus ~1 s for primal simplex or IPM (same optimum); see bess.bench.
+LP_HIGHS_OPTIONS = {"solver": "simplex", "simplex_strategy": 4}
 MIP_GAP = 1e-6  # relative optimality gap for MILP (HiGHS default 1e-4 changed SA1 Oct-2026 daily totals by < $10)
 TOL = 1e-6  # MW; below this a power value counts as zero
 
@@ -58,7 +61,7 @@ class Battery:
         energy and adds degradation kappa*rte*x. That pays only if
         -p*(1 - rte) > kappa*rte, i.e. p < -kappa*rte/(1 - rte).
         """
-        return -self.deg_cost * self.rte / (1 - self.rte)
+        return -self.deg_cost * self.rte / (1 - self.rte) + 0.0  # + 0.0 avoids -0.0
 
     @property
     def e_min(self) -> float:
@@ -126,6 +129,8 @@ def solve(prices, dt_h: float, batt: Battery, binary: bool = False,
     opt = pyo.SolverFactory(SOLVER)
     if binary:
         opt.config.mip_gap = MIP_GAP
+    else:
+        opt.highs_options = dict(LP_HIGHS_OPTIONS)
     res = opt.solve(m)
     secs = time.perf_counter() - t0
     if res.solver.termination_condition != pyo.TerminationCondition.optimal:

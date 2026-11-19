@@ -1,9 +1,9 @@
 {
-  "wall_seconds": 355.9,
+  "wall_seconds": 297.3,
   "workers": 8,
   "n_daily_jobs": 34,
   "n_month_jobs": 24,
-  "sum_solver_seconds": 1590.9,
+  "sum_solver_seconds": 1159.6,
   "mip_gap": 1e-06,
   "months": [
     "202605",

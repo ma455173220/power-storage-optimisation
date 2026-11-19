@@ -1,0 +1,5 @@
+algorithm,seconds,profit,case
+dual simplex (HiGHS default),71.01,2056344.35,"NSW1 202610, 8928 intervals, LP"
+primal simplex (used here),0.82,2056344.35,"NSW1 202610, 8928 intervals, LP"
+interior point (IPM),0.97,2056344.35,"NSW1 202610, 8928 intervals, LP"
+PDLP (first-order),10.47,2056344.35,"NSW1 202610, 8928 intervals, LP"
